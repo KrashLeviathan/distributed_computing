@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
 import base64
+import errno
+import os
+import pickle
 import re
 
 WORKER_UNAVAILABLE = 0
 WORKER_AVAILABLE = 1
 WORKER_BUSY = 2
+
+DIRECTORY_PATH = "/client_files/"
 
 tasker_clients = []
 worker_clients = []
@@ -25,17 +30,28 @@ def handle_client_data(tasker_client):
     """
     assignment_line, data_string_array = tasker_client.parse_data_file()
     workers_for_task = get_available_workers()
-    chunks = []
     for i in range(len(workers_for_task)):
         chunk = Chunk(
             len(data_string_array),
             len(workers_for_task),
             i
         )
-        chunks.append(chunk)
-        # TODO: Write file
-        workers_for_task[i].assign(tasker_client._id, chunk)
-    # TODO: Send zipped calc dir and data_portion_file to Worker Clients
+        tasker_client.write_file_from_chunk(chunk, assignment_line, data_string_array)
+        workers_for_task[i].assign(tasker_client.client_id, chunk)
+
+
+def make_dirs(file_path):
+    if not os.path.exists(os.path.dirname(file_path)):
+        try:
+            os.makedirs(os.path.dirname(file_path))
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
+
+
+def write_data_to_file(file_path, the_data):
+    with open(file_path, 'wb') as f:
+        pickle.dump(the_data, f)
 
 
 class TaskerClient:
@@ -45,41 +61,76 @@ class TaskerClient:
     """
     def __init__(self, _id, path_to_zipped_calc_dir, path_to_data_file):
         self.client_id = _id
+        # Relative paths to zipped dir, data file, and data chunk files start with:
+        #
+        # DIRECTORY_PATH + "client_" + self.client_id + "/"
+        #
+        # Example: /client_files/client_1234/calculation.zip
+        #          /client_files/client_1234/data_file.py
+        #          /client_files/client_1234/data_1234_1.py
+        #          /client_files/client_1234/data_1234_2.py
+        #          /client_files/client_1234/data_1234_3.py ... etc
         self.path_to_zipped_calc_dir = path_to_zipped_calc_dir
         self.path_to_data_file = path_to_data_file
-        self.chunk_paths = []
+        self.chunk_file_paths = []
 
     def parse_data_file(self):
-        data_file = open(self.path_to_data_file, 'r')
-        assignment_regexp = re.compile(r'^[A-Za-z0-9_]+\s*=\s*\[\s*')
-        assignment_line = None
-        data_string_array = []
+        """
+        Parses the data file whose path is stored in self.path_to_data_file. The data
+        file should contain one assignment line for a list structure.
+        :return: The invoked data structure from the file.
+        """
+        with open(self.path_to_data_file, 'r') as data_file:
+            assignment_regexp = re.compile(r'^[A-Za-z0-9_]+\s*=\s*\[\s*')
+            assignment_line_found = False
+            closing_bracket_found = False
+            data_string_array = []
+            data = None
 
-        for line in data_file:
-            if line.startswith("#"):
-                continue
-            elif assignment_regexp.search(line) is not None:
-                assignment_line = line
-            elif line.rstrip() == "]":
-                # The loop terminates once a closing bracket for the list is found.
-                break
-            elif assignment_line is not None:
-                data_string_array.append(line)
-            elif line.strip() == "":
-                continue
+            for line in data_file:
+                if line.startswith("#"):
+                    continue
+                elif assignment_regexp.search(line) is not None:
+                    if not assignment_line_found:
+                        assignment_line_found = True
+                    else:
+                        raise ValueError("Multiple variable assignments discovered in the data file!")
+                elif line.rstrip() == "]":
+                    # The loop terminates once a closing bracket for the list is found.
+                    data = self.invoke_data_structure(data_string_array)
+                    closing_bracket_found = True
+                elif assignment_line_found and not closing_bracket_found:
+                    data_string_array.append(line)
+                elif line.strip() == "":
+                    continue
+                else:
+                    raise ValueError("Found line (`" + line + "`) in data file that breaks syntax rules!")
+
+            if assignment_line_found and closing_bracket_found:
+                return data
             else:
-                raise ValueError("Found line (`" + line + "`) in data_file.py that breaks syntax rules!")
+                raise ValueError("Could not find valid data structure in the data file!\n  assignment_line_found: " +
+                                 str(assignment_line_found) + "\n  closing_bracket_found: " +
+                                 str(closing_bracket_found))
 
-        return assignment_line, data_string_array
+    def invoke_data_structure(self, data_string_array):
+        file_path = DIRECTORY_PATH + "client_" + self.client_id + "/temp_data.py"
+        make_dirs(file_path)
+        with open(file_path, "w") as f:
+            f.write("data = [\n")
+            for line in data_string_array:
+                f.write(line + "\n")
+            f.write("]")
+        execfile(file_path)
+        # This variable will exist once execfile runs
+        # noinspection PyUnresolvedReferences
+        return data
 
-    def write_file_from_chunk(self, file_path, chunk):
-        # TODO
-        chunk_file = open(file_path, 'w')
-        chunk_file.write(chunk)
-
-    def complete_chunk(self, message):
-        print()
-        # TODO: Send results back over the network to Tasker Client
+    def write_file_from_chunk(self, chunk, data):
+        file_path = DIRECTORY_PATH + "client_" + self.client_id + "/data_" + self.client_id + "_" + chunk.index + ".pkl"
+        make_dirs(file_path)
+        write_data_to_file(file_path, data[chunk.start:chunk.stop])
+        self.chunk_file_paths.append(file_path)
 
 
 class WorkerClient:
