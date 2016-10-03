@@ -3,6 +3,11 @@
 import pickle
 
 
+WORKER_UNAVAILABLE = 0
+WORKER_AVAILABLE = 1
+WORKER_BUSY = 2
+
+
 def write_results_to_file(file_path, results):
     results_file = open(file_path, 'wb')
     pickle.dump(results, results_file)
