@@ -32,14 +32,12 @@ print "Received: {}".format(received)
 #    each one will return a list of results), and
 # - written to a new file using the pickle module.
 
-def load_results_from_file(file_path):
-    results_file = open(file_path, 'rb')
-    results = pickle.load(results_file)
-    results_file.close()
-    return results
+
+def write_data_to_file(file_path, data):
+    with open(file_path, 'wb') as f:
+        pickle.dump(data, f)
 
 
-def write_results_to_file(file_path, results):
-    results_file = open(file_path, 'wb')
-    pickle.dump(results, results_file)
-    results_file.close()
+def load_data_from_file(file_path):
+    with open(file_path, 'rb') as f:
+        return pickle.load(f)
