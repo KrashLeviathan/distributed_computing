@@ -3,7 +3,7 @@
 import pickle
 import socket
 import sys
-
+import time
 HOST, PORT = "localhost", 9999
 data = " ".join(sys.argv[1:])
 
@@ -17,11 +17,14 @@ try:
 
     # Receive data from the server and shut down                                         
     received = sock.recv(1024)
+    print "Sent:     {}".format(data)
+    print "Received: {}".format(received)
+    while 1:
+        time.sleep(1)
 finally:
     sock.close()
 
-print "Sent:     {}".format(data)
-print "Received: {}".format(received)
+
 
 
 

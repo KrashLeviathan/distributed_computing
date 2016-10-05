@@ -20,10 +20,10 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         self.data = self._recv_timeout()
-
+        # We have collected the entire zip file, now we write it to the servers zip file
+        # TODO Change file location and randomly generate file name
         with open("calculation.zip", "wb") as fh:
             fh.write(base64.decodestring(self.data))
-        print "Tasker wrote: ", self.data
         self.request.send("Done! Here are your results!")
 
     # From http://code.activestate.com/recipes/408859/
@@ -55,6 +55,9 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
 
 if __name__ == "__main__":
+    # We have two separate servers on two separate ports
+    # 9999 listens for worker clients
+    # 8888 listens for tasker clients
 
     HOST = ''
     PORT_A = 9999
