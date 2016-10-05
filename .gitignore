@@ -106,3 +106,8 @@ Thumbs.db
 # JetBrains #
 #############
 .idea
+
+# EMACS #
+#############
+*.py~
+
