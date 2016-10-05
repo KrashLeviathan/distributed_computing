@@ -6,27 +6,28 @@ import sys
 import base64
 
 HOST, PORT = "localhost", 8888
-data = " ".join(sys.argv[1:])
 
 # Create a socket (SOCK_STREAM means a TCP socket)                                       
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
-    # Connect to server and send data                                                    
-    sock.connect((HOST, PORT))
-    file_name = data.split()
-    print file_name[0]
+    if len(sys.argv[1:]) != 2:
+        # TODO
+        print("USAGE")
 
-    with open(file_name[0], "rb") as f:
-        bytes = f.read()
-        encoded = base64.b64encode(bytes)
+    # Connect to server and send data
+    sock.connect((HOST, PORT))
+    zip_file_name, data_file_name = sys.argv[1:]
+    with open(zip_file_name, 'rb') as f:
+        encoded = base64.b64encode(f.read())
+
     sock.sendall(encoded)
     # Receive data from the server and shut down                                         
     received = sock.recv(1024)
 finally:
     sock.close()
 
-print "Sent:     {}".format(data)
+print "Sent:     {}".format(zip_file_name + ", " + data_file_name)
 print "Received: {}".format(received)
 
 # The worker_clients will write results for their chunk of code
