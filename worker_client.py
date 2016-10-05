@@ -19,14 +19,16 @@ try:
     received = sock.recv(1024)
     print "Sent:     {}".format(data)
     print "Received: {}".format(received)
+
+    # This loop keeps the socket open as long as the server doesnt shut down
+    # I HOPE
     while 1:
         time.sleep(1)
+        data = sock.recv(1024)
+        if data == "CLOSE CONNECTION":
+            sock.close()
 finally:
-    sock.close()
-
-
-
-
+    pass
 
 WORKER_UNAVAILABLE = 0
 WORKER_AVAILABLE = 1
