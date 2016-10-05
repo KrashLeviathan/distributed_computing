@@ -3,32 +3,29 @@
 import threading
 import time
 import SocketServer
+import base64
+import signal
+import sys
+
 
 class WorkerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        for i in range(0,5):
-            print i
-            time.sleep(1)
+        print "Worker {} wrote: {}".format(self.client_address[0], self.data)
+        self.request.send("Execute This code real quick.")
 
-        print "Worker:\n"
-        print "%s wrote: " % self.client_address[0]
-        print self.data
-        self.request.send(self.data.upper())
 
 class TaskerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        for i in range(0,5):
-            print i
-            time.sleep(1)
-
-        print "Tasker:\n"
-        print "%s wrote: " % self.client_address[0]
-        print self.data
-        self.request.send(self.data.upper())
+        # or, more concisely using with statement
+        file = bytes([self.data])
+        with open("calculation.zip", "wb") as fh:
+            fh.write(base64.b64decode(file))
+        print "Tasker wrote: ", self.data
+        self.request.send("Done! Here are your results!")
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -51,6 +48,13 @@ if __name__ == "__main__":
 
     server_A_thread.start()
     server_B_thread.start()
-
-    while 1:
-        time.sleep(1)
+    print "Listening for Taskers on Port 8888"
+    print "Listening for Workers on Port 9999"
+    try: 
+        while 1:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print "\n Shutting down server..."
+        server_A.shutdown()
+        server_B.shutdown()
+        print "\n Server Shutdown"

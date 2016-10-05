@@ -3,6 +3,7 @@
 import pickle
 import socket
 import sys
+import base64
 
 HOST, PORT = "localhost", 8888
 data = " ".join(sys.argv[1:])
@@ -13,7 +14,10 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     # Connect to server and send data                                                    
     sock.connect((HOST, PORT))
-    sock.sendall(data + "\n")
+    file_name = data
+    sock.sendall(file_name)
+    #with open("yourfile.ext", "rb") as image_file:
+    #encoded_string = base64.b64encode(image_file.read())
 
     # Receive data from the server and shut down                                         
     received = sock.recv(1024)
@@ -32,18 +36,10 @@ print "Received: {}".format(received)
 #    each one will return a list of results), and
 # - written to a new file using the pickle module.
 
-<<<<<<< HEAD
-def load_results_from_file(file_path):
-    results_file = open(file_path, 'rb')
-    results = pickle.load(results_file)
-    results_file.close()
-    return results
-=======
 
 def write_data_to_file(file_path, data):
     with open(file_path, 'wb') as f:
         pickle.dump(data, f)
->>>>>>> 49e1d5eef6b2202b7df3dcccb3e29857504f390d
 
 
 def load_data_from_file(file_path):

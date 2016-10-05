@@ -3,6 +3,7 @@
 import pickle
 import socket
 import sys
+import base64
 
 HOST, PORT = "localhost", 8888
 data = " ".join(sys.argv[1:])
@@ -13,8 +14,13 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     # Connect to server and send data                                                    
     sock.connect((HOST, PORT))
-    sock.sendall(data + "\n")
+    file_name = data.split()
+    print file_name[0]
 
+    with open(file_name[0], "rb") as f:
+        bytes = f.read()
+        encoded = base64.b64encode(bytes)
+    sock.sendall(encoded)
     # Receive data from the server and shut down                                         
     received = sock.recv(1024)
 finally:
