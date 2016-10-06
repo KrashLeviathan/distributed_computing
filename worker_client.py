@@ -3,9 +3,12 @@
 import pickle
 import socket
 import sys
+import zipfile
 
 HOST, PORT = "localhost", 9999
 data = " ".join(sys.argv[1:])
+zfile_path = "./calculation.zip"
+pklfile_path = "./*.pkl"
 
 # Create a socket (SOCK_STREAM means a TCP socket)                                       
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,6 +20,23 @@ try:
 
     # Receive data from the server and shut down                                         
     received = sock.recv(1024)
+	
+	# TODO Set vars to received information
+	# Save file to zfile_path from sock
+	
+	# Unzip calculation.zip
+	zipfile.extractall(zfile_path)
+	
+	# TODO Create the file at pklfile_path from sock
+	# write_data_to_file(pklfile_path, received)
+	
+	# pkldata = load_data_from_file(pklfile_path)
+	
+	# Call calculate in calculation/main_file.py
+	# and stage the file to send back to server
+	
+	# Send to server
+	
 finally:
     sock.close()
 
