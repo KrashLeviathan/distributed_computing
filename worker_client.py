@@ -7,7 +7,7 @@ import zipfile
 
 HOST, PORT = "localhost", 9999
 data = " ".join(sys.argv[1:])
-zfile_path = "./calculation.zip"
+zfile_path = "./hello_w.zip"
 pklfile_path = "./*.pkl"
 
 # Create a socket (SOCK_STREAM means a TCP socket)                                       
@@ -22,10 +22,12 @@ try:
     received = sock.recv(1024)
 	
 	# TODO Set vars to received information
-	# Save file to zfile_path from sock
+	# Save file to zfile_path with data received from sock
 	
 	# Unzip calculation.zip
-	zipfile.extractall(zfile_path)
+	zip_ref = zipfile.ZipFile(zfile_path, 'r')
+	zip_ref.extractall("./")
+	zip_ref.close()
 	
 	# TODO Create the file at pklfile_path from sock
 	# write_data_to_file(pklfile_path, received)
@@ -44,7 +46,6 @@ print "Sent:     {}".format(data)
 print "Received: {}".format(received)
 
 
-
 WORKER_UNAVAILABLE = 0
 WORKER_AVAILABLE = 1
 WORKER_BUSY = 2
@@ -58,7 +59,6 @@ def write_data_to_file(file_path, data):
 def load_data_from_file(file_path):
     with open(file_path, 'rb') as f:
         return pickle.load(f)
-
 
 # Brody,
 #
