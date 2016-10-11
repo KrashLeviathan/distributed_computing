@@ -11,19 +11,19 @@ import sys
 class WorkerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        self.data = self.request.recv(1024).strip()
-        print "Worker {} wrote: {}".format(self.client_address[0], self.data)
+        data = self.request.recv(1024).strip()
+        print "Worker {} wrote: {}".format(self.client_address[0], data)
         self.request.send("Execute This code real quick.")
 
 
 class TaskerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        self.data = self._recv_timeout()
+        data = self._recv_timeout()
 
         with open("calculation.zip", "wb") as fh:
-            fh.write(base64.decodestring(self.data))
-        print "Tasker wrote: ", self.data
+            fh.write(base64.decodestring(data))
+        print "Tasker wrote: ", data
         self.request.send("Done! Here are your results!")
 
     # From http://code.activestate.com/recipes/408859/

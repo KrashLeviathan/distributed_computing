@@ -5,6 +5,7 @@ import socket
 import sys
 import zipfile
 import os.path
+import utils
 
 HOST, PORT = "localhost", 9999
 data = " ".join(sys.argv[1:])
@@ -15,18 +16,8 @@ WORKER_UNAVAILABLE = 0
 WORKER_AVAILABLE = 1
 WORKER_BUSY = 2
 
-
-def write_data_to_file(file_path, data):
-    with open(file_path, 'wb') as f:
-        pickle.dump(data, f)
-
-
-def load_data_from_file(file_path):
-    with open(file_path, 'rb') as f:
-        return pickle.load(f)
-
 # Create a socket (SOCK_STREAM means a TCP socket)                                       
-#sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
     # Connect to server and send data                                                    
@@ -34,26 +25,26 @@ try:
     #sock.sendall("Ready to do work")
 
     # Receive data from the server and shut down                                         
-    #received = sock.recv(1024)
+    received = sock.recv(1024)
 	
-	# TODO Set vars to received information
+    # TODO Set vars to received information
 	# Save file to zfile_path with data received from sock
 	
 	# Unzip calculation.zip
 	zip_ref = zipfile.ZipFile(zfile_path, 'r')
-	zip_ref.extractall("./")
-	zip_ref.close()
+    zip_ref.extractall("./")
+    zip_ref.close()
 	
-	# TODO Create the file at pklfile_path from sock
-	write_data_to_file(pklfile_path, received)
+    # TODO Create the file at pklfile_path from sock
+    utils.write_data_to_file(pklfile_path, received)
 	
-	pkldata = load_data_from_file(pklfile_path)
+    pkldata = utils.load_data_from_file(pklfile_path)
 	
-	# Call calculate in calculation/main_file.py
+    # Call calculate in calculation/main_file.py
 	# and stage the file to send back to server
-	from main_file import calculate
-	results = calculate(pkldata)
-	print results
+    # from main_file import calculate
+    # results = calculate(pkldata)
+    # print results
 	# Send to server
 	# sock.sendall(results)
 	
@@ -61,7 +52,7 @@ try:
 	# Check if log.txt exists and send to file
 	#if os.path.exists("./log.txt"):
 		# Send file data to server
-		#sock.sendall()
+		# sock.sendall()
 	
 finally:
 	print "finally"

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import pickle
 import socket
 import sys
 import base64
@@ -38,13 +37,3 @@ print "Received: {}".format(received)
 # - assembled into a new list in the correct order (because
 #    each one will return a list of results), and
 # - written to a new file using the pickle module.
-
-
-def write_data_to_file(file_path, data):
-    with open(file_path, 'wb') as f:
-        pickle.dump(data, f)
-
-
-def load_data_from_file(file_path):
-    with open(file_path, 'rb') as f:
-        return pickle.load(f)
