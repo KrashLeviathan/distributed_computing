@@ -2,43 +2,42 @@
 
 import pickle
 import socket
-import sys
 import time
 import errno
 from socket import error as socket_error
 
 HOST, PORT = "localhost", 9999
-
-# Create a socket (SOCK_STREAM means a TCP socket)                                       
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-
 running = True
+WORKER_UNAVAILABLE = 0
+WORKER_AVAILABLE = 1
+WORKER_BUSY = 2
 
-try:
-    # Connect to server and send data
-    sock.connect((HOST, PORT))
-    sock.sendall("Ready to do work")
+def main():
+    global running
 
-    # Receive data from the server and shut down                                         
-    received = sock.recv(1024)
-    print "Sent:     Ready to do work"
-    print "Received: {}".format(received)
-    sys.stdout.write("Awaiting data")
-    sys.stdout.flush()
-
-    # This loop keeps the socket open as long as the server doesnt shut down
-    # I HOPE
     while running:
         try:
-            time.sleep(1)
+            # Create a socket (SOCK_STREAM means a TCP socket)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            # Connect to server and send data
+            sock.connect((HOST, PORT))
+            sock.sendall("Ready to do work")
+
+            # Receive data from the server and shut down
             received = sock.recv(1024)
-            msgToPrint = "Received: {}\nAwaiting data".format(received) if len(received) != 0 else "."
-            sys.stdout.write(msgToPrint)
-            sys.stdout.flush()
-            if received == "CLOSE CONNECTION":
-                running = False
-                sock.close()
+            print "Sent:     \"Ready to do work\""
+            print "Received: \"{}\"".format(received)
+
+            # This loop keeps the socket open as long as the server doesnt shut down
+            # I HOPE
+            while running:
+                time.sleep(1)
+                received = sock.recv(1024)
+                print("Received: \"{}\"".format(received if len(received) != 0 else ""))
+                if received == "":
+                    sock.close()
+                    break
         except KeyboardInterrupt:
             print("\nShutting down worker client...")
             running = False
@@ -46,12 +45,11 @@ try:
             sock.sendall("__CLOSING__")
             sock.close()
             print("WorkerClient Shutdown")
-finally:
-    pass
-
-WORKER_UNAVAILABLE = 0
-WORKER_AVAILABLE = 1
-WORKER_BUSY = 2
+        except socket.error, exc:
+            print("Failure to connect: {}".format(exc))
+            time.sleep(1)
+        finally:
+            pass
 
 
 def write_data_to_file(file_path, data):
@@ -80,3 +78,6 @@ def load_data_from_file(file_path):
 #     (Maybe use `results_<client_id>_<chunk_serial_#>.pkl as filename?)
 # - Use Charlie's API to send the results file and a log file (similar naming)
 #   back to the server
+
+if __name__ == "__main__":
+    main()
