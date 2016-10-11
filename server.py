@@ -4,9 +4,7 @@ import threading
 import time
 import SocketServer
 import base64
-import signal
 import socket
-import sys
 
 clients = list()
 
@@ -15,17 +13,19 @@ clients_lock = threading.Lock()
 running = True
 
 class WorkerRequestHandler(SocketServer.BaseRequestHandler):
+    def __init__(self, request, client_address, server):
+        SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
+        self.clientRunning = True
+        self.sendQueue = []
+        self.data = None
 
     def handle(self):
         global running, clients
 
-        self.workerRunning = True
-        self.sendQueue = []
-
         self.data = self._recv_timeout()
         print "Worker {} wrote: \"{}\"".format(self, self.data)
         self.request.send("Execute This code real quick.")
-        while running and self.workerRunning:
+        while running and self.clientRunning:
             for message in self.sendQueue:
                 print("Sent message from queue")
                 self.request.send(message)
@@ -34,7 +34,7 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
             if len(self.data) != 0:
                 print("Worker {} wrote: \"{}\"".format(self, self.data))
             if self.data == "__CLOSING__":
-                self.workerRunning = False
+                self.clientRunning = False
                 for client in clients:
                     if client is self:
                         clients.remove(client)
@@ -43,7 +43,6 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
     def _recv_timeout(self, timeout=2):
         self.request.setblocking(0)
         total_data = []
-        data = ''
         begin = time.time()
         while 1:
             # if you got some data, then break after wait sec
@@ -65,6 +64,11 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
 
 
 class TaskerRequestHandler(SocketServer.BaseRequestHandler):
+    def __init__(self, request, client_address, server):
+        SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
+        self.clientRunning = True
+        self.sendQueue = []
+        self.data = None
 
     def handle(self):
         self.data = self._recv_timeout()
@@ -78,7 +82,6 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
     def _recv_timeout(self, timeout=2):
         self.request.setblocking(0)
         total_data = []
-        data = ''
         begin = time.time()
         while 1:
             # if you got some data, then break after wait sec
