@@ -8,30 +8,46 @@ import errno
 from socket import error as socket_error
 
 HOST, PORT = "localhost", 9999
-data = " ".join(sys.argv[1:])
 
 # Create a socket (SOCK_STREAM means a TCP socket)                                       
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+
+running = True
 
 try:
     # Connect to server and send data
     sock.connect((HOST, PORT))
     sock.sendall("Ready to do work")
 
-    # Receive data from the server and shut down
-    while 1:
-        received = sock.recv(1024)
-        if received != '':
-            print "Sent:     {}".format(data)
-            print "Received: {}".format(received)
+    # Receive data from the server and shut down                                         
+    received = sock.recv(1024)
+    print "Sent:     Ready to do work"
+    print "Received: {}".format(received)
+    sys.stdout.write("Awaiting data")
+    sys.stdout.flush()
 
-        if received == "CLOSE CONNECTION":
+    # This loop keeps the socket open as long as the server doesnt shut down
+    # I HOPE
+    while running:
+        try:
+            time.sleep(1)
+            received = sock.recv(1024)
+            msgToPrint = "Received: {}\nAwaiting data".format(received) if len(received) != 0 else "."
+            sys.stdout.write(msgToPrint)
+            sys.stdout.flush()
+            if received == "CLOSE CONNECTION":
+                running = False
+                sock.close()
+        except KeyboardInterrupt:
+            print("\nShutting down worker client...")
+            running = False
+            time.sleep(1.5)
+            sock.sendall("__CLOSING__")
             sock.close()
-            break
-
-except KeyboardInterrupt:
-    sock.close()
+            print("WorkerClient Shutdown")
+finally:
+    pass
 
 WORKER_UNAVAILABLE = 0
 WORKER_AVAILABLE = 1
