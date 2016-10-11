@@ -7,7 +7,8 @@ import base64
 import signal
 import sys
 
-clients = set()
+clients = list()
+
 clients_lock = threading.Lock()
 
 
@@ -15,10 +16,10 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         with clients_lock:
-            clients.add(self)
-        for client in clients:
-            # client.request.send("Client Added")
-            print client.request
+            # client_object = self, clients_lock
+            clients.append(self)
+            server_A.send_to_all()
+
         self.data = self.request.recv(1024).strip()
         print "Worker {} wrote: {}".format(self.client_address[0], self.data)
         self.request.send("Execute This code real quick.")
@@ -60,6 +61,10 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    def send_to_all(self):
+        for client in clients:
+            client.request.send("Added Client")
+
     pass
 
 if __name__ == "__main__":
@@ -89,8 +94,6 @@ if __name__ == "__main__":
             time.sleep(1)
     except KeyboardInterrupt:
         print "\n Shutting down server..."
-        server_A.socket.sendall("CLOSE CONNECTION")
-        server_B.socket.sendall("CLOSE CONNECTION")
         server_A.shutdown()
         server_B.shutdown()
         print "\n Server Shutdown"

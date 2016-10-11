@@ -4,31 +4,34 @@ import pickle
 import socket
 import sys
 import time
+import errno
+from socket import error as socket_error
+
 HOST, PORT = "localhost", 9999
 data = " ".join(sys.argv[1:])
 
 # Create a socket (SOCK_STREAM means a TCP socket)                                       
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+
 try:
-    # Connect to server and send data                                                    
+    # Connect to server and send data
     sock.connect((HOST, PORT))
     sock.sendall("Ready to do work")
 
-    # Receive data from the server and shut down                                         
-    received = sock.recv(1024)
-    print "Sent:     {}".format(data)
-    print "Received: {}".format(received)
-
-    # This loop keeps the socket open as long as the server doesnt shut down
-    # I HOPE
+    # Receive data from the server and shut down
     while 1:
-        time.sleep(1)
-        data = sock.recv(1024)
-        if data == "CLOSE CONNECTION":
+        received = sock.recv(1024)
+        if received != '':
+            print "Sent:     {}".format(data)
+            print "Received: {}".format(received)
+
+        if received == "CLOSE CONNECTION":
             sock.close()
-finally:
-    pass
+            break
+
+except KeyboardInterrupt:
+    sock.close()
 
 WORKER_UNAVAILABLE = 0
 WORKER_AVAILABLE = 1
