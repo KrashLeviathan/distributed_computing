@@ -36,15 +36,15 @@ def main():
             # TODO Set vars to received information
             # Save file to zfile_path with data received from sock
 
-            # Unzip calculation.zip
-            zip_ref = zipfile.ZipFile(zfile_path, 'r')
-            zip_ref.extractall("./")
-            zip_ref.close()
-
-            # TODO Create the file at pklfile_path from sock
-            utils.write_data_to_file(pklfile_path, received)
-
-            pkldata = utils.load_data_from_file(pklfile_path)
+            # # Unzip calculation.zip
+            # zip_ref = zipfile.ZipFile(zfile_path, 'r')
+            # zip_ref.extractall("./")
+            # zip_ref.close()
+            #
+            # # TODO Create the file at pklfile_path from sock
+            # utils.write_data_to_file(pklfile_path, received)
+            #
+            # pkldata = utils.load_data_from_file(pklfile_path)
 
             # Call calculate in calculation/main_file.py
             # and stage the file to send back to server
@@ -64,11 +64,17 @@ def main():
             # I HOPE
             while running:
                 time.sleep(1)
-                received = sock.recv(1024)
-                print("Received: \"{}\"".format(received if len(received) != 0 else ""))
+
+                # FIXME
+                received = _recv_timeout(sock)
+                # print("Received: \"{}\"".format(received if len(received) != 0 else ""))
+
                 if received == "":
                     sock.close()
                     break
+                elif "__FILES__" in received:
+                    print("File Received")
+
         except KeyboardInterrupt:
             print("\nShutting down worker client...")
             running = False
@@ -82,6 +88,30 @@ def main():
         finally:
             pass
 
+
+# FIXME
+# From http://code.activestate.com/recipes/408859/
+def _recv_timeout(self, timeout=2):
+    self.setblocking(0)
+    total_data = []
+    begin = time.time()
+    while 1:
+        # if you got some data, then break after wait sec
+        if total_data and time.time() - begin > timeout:
+            break
+        # if you got no data at all, wait a little longer
+        elif time.time() - begin > timeout * 2:
+            break
+        try:
+            data = self.request.recv(8192).strip()
+            if data:
+                total_data.append(data)
+                begin = time.time()
+            else:
+                time.sleep(0.1)
+        except:
+            pass
+    return ''.join(total_data)
 
 def write_data_to_file(file_path, data):
     with open(file_path, 'wb') as f:

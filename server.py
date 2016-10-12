@@ -6,6 +6,8 @@ import SocketServer
 import base64
 import socket
 
+# TODO assign an id to the tasker client
+
 clients = list()
 
 clients_lock = threading.Lock()
@@ -21,8 +23,11 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         global running, clients
-
+        self.clientRunning = True
+        self.sendQueue = []
         self.data = self._recv_timeout()
+        with clients_lock:
+            clients.append(self)
         print "Worker {} wrote: \"{}\"".format(self, self.data)
         self.request.send("Execute This code real quick.")
         while running and self.clientRunning:
@@ -76,6 +81,9 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
         # TODO Change file location and randomly generate file name
         with open("calculation.zip", "wb") as fh:
             fh.write(base64.decodestring(self.data))
+
+        server_A.send_to_all('calculation.zip')
+
         self.request.send("Done! Here are your results!")
 
     # From http://code.activestate.com/recipes/408859/
@@ -104,8 +112,12 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def send_to_all(self, message):
+        print("Sending to all clients")
+        zip_file_name = message
+        with open(zip_file_name, 'rb') as f:
+            encoded = base64.b64encode(f.read())
         for client in clients:
-            client.sendQueue.append(message)
+            client.sendQueue.append("__FILES__" + encoded)
 
     pass
 
