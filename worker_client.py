@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import base64
+import imp
 from utils import *
 import zipfile
 import os
@@ -8,8 +9,8 @@ import marx_client
 from shutil import rmtree
 
 HOST, PORT = "localhost", 9999
-zfile_path = "./calculation.zip"
-pklfile_path = "./calculation/main_file.pkl"
+zip_file_name = "calculation.zip"
+data_file_name = "data_file.py"
 
 
 class WorkerClient(marx_client.MarxClient):
@@ -32,46 +33,66 @@ class WorkerClient(marx_client.MarxClient):
             rmtree("clients")
 
     def handle_files(self, message):
-        print("Files Received")  # FIXME: Remove
+        base_client_directory = self._save_files_to_clients(message)
 
-        zip_file, data_file = message.split(MESSAGE_DELIMITER)
-        directory = "client_" + self.client_id
-        os.makedirs("clients/" + directory)
-
-        with open("clients/" + directory + "/calculation.zip", "wb") as fh:
-            fh.write(base64.decodestring(zip_file))
-        with open("clients/" + directory + "/data_file.py", "wb") as fh:
-            fh.write(base64.decodestring(data_file))
-
-        # TODO Set vars to received information
-        # Save file to zfile_path with data received from sock
-
-        # # Unzip calculation.zip
-        # zip_ref = zipfile.ZipFile(zfile_path, 'r')
-        # zip_ref.extractall("./")
-        # zip_ref.close()
-        #
-        # # TODO Create the file at pklfile_path from sock
-        # utils.write_data_to_file(pklfile_path, received)
-        #
-        # pkldata = utils.load_data_from_file(pklfile_path)
+        # Load the data from data_file.py
+        data_module = imp.load_source('module.name', base_client_directory + "/" + data_file_name)
+        print(data_module.data)
 
         # Call calculate in calculation/main_file.py
         # and stage the file to send back to server
-        # from main_file import calculate
-        # results = calculate(pkldata)
-        # print results
+        # noinspection PyUnresolvedReferences
+        from clients.client_.calculation.main_file import calculate
+        results = calculate(data_module.data)
         # Send to server
-        # sock.sendall(results)
+        self.send_message(M_TYPE_RESULT, results)
 
         # Save log as log.txt
         # Check if log.txt exists and send to file
-        # if os.path.exists("./log.txt"):
-        # Send file data to server
-        # sock.sendall()
+        # TODO: Log file can be done in future iterations, but not this one!
+        # if os.path.exists(base_client_directory + "./log.txt"):
+        #     # Send file data to server
+        #     with open("example_1/calculation.zip", 'rb') as f:
+        #         encoded = base64.b64encode(f.read())
+        #     self.send_message(M_TYPE_LOG, logfile)
 
         return True
+
+    def _save_files_to_clients(self, message):
+        # Split
+        zip_file, data_file = message.split(MESSAGE_DELIMITER)
+
+        # Create directories, complete with __init__.py files to make them modules
+        base_client_directory = "clients/client_" + self.client_id
+        if not os.path.exists(base_client_directory):
+            os.makedirs(base_client_directory)
+        open('clients/__init__.py', 'a').close()
+        open(base_client_directory + "/__init__.py", 'a').close()
+
+        # Save the zip and data files
+        with open(base_client_directory + "/" + zip_file_name, "wb") as fh:
+            fh.write(base64.decodestring(zip_file))
+        with open(base_client_directory + "/" + data_file_name, "wb") as fh:
+            fh.write(base64.decodestring(data_file))
+
+        # Unzip calculation.zip
+        zip_ref = zipfile.ZipFile(base_client_directory + "/" + zip_file_name, 'r')
+        zip_ref.extractall(base_client_directory + "/")
+        zip_ref.close()
+
+        # If the calculation directory isn't already a module, make it one
+        open(base_client_directory + "/calculation/__init__.py", 'a').close()
+
+        return base_client_directory
 
 
 if __name__ == "__main__":
     WorkerClient().run()
+
+    # # UNCOMMENT for testing!
+    # with open("example_1/calculation.zip", 'rb') as f:
+    #     encoded = base64.b64encode(f.read())
+    # encoded += MESSAGE_DELIMITER
+    # with open("example_1/data_file.py", 'rb') as f:
+    #     encoded += base64.b64encode(f.read())
+    # WorkerClient().handle_files(encoded)

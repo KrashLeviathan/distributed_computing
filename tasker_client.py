@@ -39,7 +39,6 @@ class TaskerClient(marx_client.MarxClient):
         elif message_type == M_TYPE_RESULT:
             return self.handle_result(message)
         else:
-            print("Here")
             return False
 
     def handle_result(self, result):
