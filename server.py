@@ -5,8 +5,9 @@ import time
 import SocketServer
 import base64
 import socket
+import random
 
-# TODO assign an id to the tasker client
+# TODO assign an id to the tasker clients
 clients = list()
 clients_lock = threading.Lock()
 running = True
@@ -15,17 +16,27 @@ running = True
 class WorkerRequestHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
+
+        # FIXME __init__ isn't getting called til after the clients closes.
         self.clientRunning = True
         self.sendQueue = []
         self.data = None
 
     def handle(self):
+
+        # FIXME This is a temporary fix, normally the following two lines would go in __init__
+        # but for some reason, __init__ is not getting until the clients closes.
+        self.clientRunning = True
+        self.sendQueue = []
+
         global running, clients
         self.data = self._recv_timeout()
+
         with clients_lock:
             clients.append(self)
         print "Worker {} wrote: \"{}\"".format(self, self.data)
-        self.request.send("Execute This code real quick.")
+        string = "{}".format(self)
+        self.request.send(string[42:-1])
         while running and self.clientRunning:
             for message in self.sendQueue:
                 print("Sent message from queue")
@@ -67,16 +78,23 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
 class TaskerRequestHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
+
+        # FIXME __init__ isn't getting called til after the clients closes.
         self.clientRunning = True
         self.sendQueue = []
+
         self.data = None
 
     def handle(self):
+
+        # FIXME This is a temporary fix, normally the following two lines would go in __init__
+        self.clientRunning = True
+        self.sendQueue = []
+
         self.data = self._recv_timeout()
         result = self.data.split("__DATA__")
         zip_file = result[0]
         data_file = result[1]
-
 
         # We have collected the entire zip file, now we write it to the servers zip file
         # TODO Change file location and randomly generate file name

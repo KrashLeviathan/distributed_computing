@@ -34,7 +34,7 @@ print "Received: {}".format(received)
 
 # The worker_clients will write results for their chunk of code
 # to a file using the pickle module. Once all those files make
-# their way back to the client, they need to be:
+# their way back to the clients, they need to be:
 #
 # - loaded,
 # - assembled into a new list in the correct order (because

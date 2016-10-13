@@ -6,12 +6,13 @@ import time
 import base64
 import utils
 import zipfile
+import os
 
 HOST, PORT = "localhost", 9999
 running = True
 zfile_path = "./calculation.zip"
 pklfile_path = "./calculation/main_file.pkl"
-
+id = 0
 WORKER_UNAVAILABLE = 0
 WORKER_AVAILABLE = 1
 WORKER_BUSY = 2
@@ -32,8 +33,8 @@ def main():
             # Receive data from the server and shut down
             received = sock.recv(1024)
             print "Sent:     \"Ready to do work\""
-            print "Received: \"{}\"".format(received)
-
+            print "Id: \"{}\"".format(received)
+            id = received
             # TODO Set vars to received information
             # Save file to zfile_path with data received from sock
 
@@ -81,13 +82,16 @@ def main():
                     received = received.split("__DATA__")
                     zip_file = received[0]
                     data_file = received[1]
-                    with open("client/calculation.zip", "wb") as fh:
+                    directory = "client_" + id
+                    os.makedirs("clients/" + directory)
+
+                    with open("clients/"+ directory + "/calculation.zip", "wb") as fh:
                         fh.write(base64.decodestring(zip_file))
-                    with open("client/data_file.py", "wb") as fh:
+                    with open("clients/" + directory + "/data_file.py", "wb") as fh:
                         fh.write(base64.decodestring(data_file))
 
         except KeyboardInterrupt:
-            print("\nShutting down worker client...")
+            print("\nShutting down worker clients...")
             running = False
             time.sleep(1.5)
             sock.sendall("__CLOSING__")

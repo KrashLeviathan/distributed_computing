@@ -67,7 +67,7 @@ def write_data_to_file(file_path, the_data):
 
 class TaskerClient:
     """
-    Handles the sending/receiving of information to/from a Tasker Client (the client
+    Handles the sending/receiving of information to/from a Tasker Client (the clients
     that requests execution of a piece of code).
     """
     def __init__(self, _id, path_to_zipped_calc_dir, path_to_data_file):
@@ -159,7 +159,7 @@ class TaskerClient:
 
 class WorkerClient:
     """
-    Handles the sending/receiving of information to/from a Worker Client (the client
+    Handles the sending/receiving of information to/from a Worker Client (the clients
     that executes the code).
     """
     def __init__(self, _id):
