@@ -6,6 +6,7 @@ import SocketServer
 import base64
 import socket
 import os
+from utils import *
 
 # TODO assign an id to the tasker clients
 clients = list()
@@ -39,7 +40,7 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
             self.data = self._recv_timeout()
             if len(self.data) != 0:
                 print("Worker {} wrote: \"{}\"".format(self, self.data))
-            if self.data == "__CLOSING__":
+            if self.data == M_TYPE_CLOSING:
                 print("closing worker")
                 self.clientRunning = False
                 for client in clients:
@@ -84,7 +85,7 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
             clients.append(self)
 
         self.data = self._recv_timeout()
-        result = self.data.split("__DATA__")
+        result = self.data.split(MESSAGE_DELIMITER)
         zip_file = result[0]
         data_file = result[1]
         id = "{}".format(self)
@@ -135,13 +136,13 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     @staticmethod
     def kill_clients():
         for client in clients:
-            client.request.send("__SHUTD__")
+            client.request.send(M_TYPE_SHUTDOWN)
 
     @staticmethod
     def send_to_all(file_data):
         print("Sending to all clients")
         for client in clients:
-            client.sendQueue.append("__FILES__" + file_data)
+            client.sendQueue.append(M_TYPE_FILES + file_data)
 
 
 if __name__ == "__main__":

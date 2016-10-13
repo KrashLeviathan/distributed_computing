@@ -2,6 +2,16 @@
 
 from pickle import (dump, load)
 
+# Nine-character message types prepend encoded messages sent over the socket
+M_TYPE_RESULT = "__RESLT__"
+M_TYPE_SHUTDOWN = "__SHUTD__"
+M_TYPE_FILES = "__FILES__"
+M_TYPE_CLOSING = "__CLOSE__"
+
+# After data has been encoded for transmission, it gets joined together with
+# this string being the delimiter.
+MESSAGE_DELIMITER = "__DATA__"
+
 
 def sort_results(results):
     """Sorts file names based on designated part number.

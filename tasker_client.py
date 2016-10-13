@@ -4,12 +4,10 @@ import socket
 import sys
 import base64
 from time import sleep
-import utils
+from utils import *
 
 HOST, PORT = "localhost", 8888
 SLEEP_TIME = 2
-M_TYPE_RESULT = "__RESLT__"
-M_TYPE_SHUTDOWN = "__SHUTD__"
 
 
 def main():
@@ -56,8 +54,8 @@ def main():
 
 
 def handle_partial_result(result):
-    # utils.sort_results(results)
-    # utils.assemble_results(results, out_filename)
+    # sort_results(results)
+    # assemble_results(results, out_filename)
     # TODO
     print(result)
 
@@ -65,7 +63,7 @@ def handle_partial_result(result):
 def encode_data_from_args(zip_file_name, data_file_name):
     with open(zip_file_name, 'rb') as f:
         encoded = base64.b64encode(f.read())
-    encoded += "__DATA__"
+    encoded += MESSAGE_DELIMITER
     with open(data_file_name, 'rb') as f:
         encoded += base64.b64encode(f.read())
     return encoded

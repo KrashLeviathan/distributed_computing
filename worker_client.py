@@ -3,7 +3,7 @@
 import socket
 import time
 import base64
-import utils
+from utils import *
 import zipfile
 import os
 
@@ -75,10 +75,10 @@ def main():
                 if received == "":
                     sock.close()
                     break
-                elif message_type == "__FILES__":
+                elif message_type == M_TYPE_FILES:
                     print("File Received")
                     received = received[9:] + _recv_timeout(sock)
-                    received = received.split("__DATA__")
+                    received = received.split(MESSAGE_DELIMITER)
                     zip_file = received[0]
                     data_file = received[1]
                     directory = "client_" + id
@@ -88,7 +88,7 @@ def main():
                         fh.write(base64.decodestring(zip_file))
                     with open("clients/" + directory + "/data_file.py", "wb") as fh:
                         fh.write(base64.decodestring(data_file))
-                elif message_type == "__SHUTD__":
+                elif message_type == M_TYPE_SHUTDOWN:
                     print("\nServer requested shutdown...")
                     running = False
                     sock.close()
@@ -101,7 +101,7 @@ def main():
             print("\nShutting down worker clients...")
             running = False
             time.sleep(1.5)
-            sock.sendall("__CLOSING__")
+            sock.sendall(M_TYPE_CLOSING)
             sock.close()
             print("WorkerClient Shutdown")
         except socket.error, exc:
