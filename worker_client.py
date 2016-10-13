@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import pickle
 import socket
 import time
 import base64
@@ -136,16 +135,6 @@ def _recv_timeout(self, timeout=2):
         except:
             pass
     return ''.join(total_data)
-
-
-def write_data_to_file(file_path, data):
-    with open(file_path, 'wb') as f:
-        pickle.dump(data, f)
-
-
-def load_data_from_file(file_path):
-    with open(file_path, 'rb') as f:
-        return pickle.load(f)
 
 
 if __name__ == "__main__":

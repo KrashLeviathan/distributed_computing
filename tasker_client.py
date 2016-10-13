@@ -4,54 +4,78 @@ import socket
 import sys
 import base64
 from time import sleep
+import utils
 
 HOST, PORT = "localhost", 8888
+SLEEP_TIME = 2
+M_TYPE_RESULT = "__RESLT__"
+M_TYPE_SHUTDOWN = "__SHUTD__"
 
-# Create a socket (SOCK_STREAM means a TCP socket)                                       
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-try:
+def main():
     if len(sys.argv[1:]) != 2:
-        # TODO
-        print("USAGE")
-
-    # Connect to server and send data
-    sock.connect((HOST, PORT))
+        usage()
     zip_file_name, data_file_name = sys.argv[1:]
+
+    # Create a socket (SOCK_STREAM means a TCP socket)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    try:
+        # Connect to server and send data
+        sock.connect((HOST, PORT))
+        encoded = encode_data_from_args(zip_file_name, data_file_name)
+        sock.sendall(encoded)
+        print "Sent:     {}".format(zip_file_name + ", " + data_file_name)
+
+        # Receive data from the server and shut down
+        while True:
+            received = sock.recv(1024)
+            if not received:
+                continue
+
+            message_type = received[:9]
+            print "Received: {}".format(received)
+
+            if message_type == M_TYPE_RESULT:
+                message = received[9:] if len(received) > 9 else ""
+                handle_partial_result(message)
+                pass
+            elif message_type == M_TYPE_SHUTDOWN:
+                print("\nServer requested shutdown...")
+                break
+            elif message_type == "":
+                print("\nConnection was lost. Shutting down...")
+                break
+            else:
+                print("Received unknown message type: {}".format(message_type))
+
+            sleep(SLEEP_TIME)
+    finally:
+        sock.close()
+        print("Tasker Client Shutdown")
+
+
+def handle_partial_result(result):
+    # utils.sort_results(results)
+    # utils.assemble_results(results, out_filename)
+    # TODO
+    print(result)
+
+
+def encode_data_from_args(zip_file_name, data_file_name):
     with open(zip_file_name, 'rb') as f:
         encoded = base64.b64encode(f.read())
     encoded += "__DATA__"
     with open(data_file_name, 'rb') as f:
         encoded += base64.b64encode(f.read())
+    return encoded
 
-    sock.sendall(encoded)
-    # Receive data from the server and shut down
-    while True:
-        received = sock.recv(1024)
-        message_type = received[:9]
 
-        if received:
-            print('got something')
+def usage():
+    # TODO: Write usage statement
+    print("USAGE")
+    exit()
 
-        if message_type == "__SHUTD__":
-            print("\nServer requested shutdown...")
-            sock.close()
-            print("Tasker Client Shutdown")
-            break
-        sleep(1)
-except:
-    sock.close()
-finally:
-    sock.close()
 
-print "Sent:     {}".format(zip_file_name + ", " + data_file_name)
-print "Received: {}".format(received)
-
-# The worker_clients will write results for their chunk of code
-# to a file using the pickle module. Once all those files make
-# their way back to the clients, they need to be:
-#
-# - loaded,
-# - assembled into a new list in the correct order (because
-#    each one will return a list of results), and
-# - written to a new file using the pickle module.
+if __name__ == "__main__":
+    main()
