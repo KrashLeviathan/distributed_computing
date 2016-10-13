@@ -16,12 +16,6 @@ class WorkerClient(marx_client.MarxClient):
     def __init__(self):
         marx_client.MarxClient.__init__(self, HOST, PORT)
 
-    def pre_connect_setup(self):
-        pass
-
-    def post_connect_setup(self):
-        pass
-
     def handle_message(self, message_type, message):
         if message_type == M_TYPE_CLIENT_ID:
             self.client_id = message

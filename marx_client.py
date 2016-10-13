@@ -21,9 +21,13 @@ class MarxClient:
         # Outer loop will keep trying to connect if a connection is lost
         while self.clientRunning:
             try:
-                self.pre_connect_setup()
+                if not self.pre_connect_setup():
+                    print("Exiting at pre_connect_setup()")
+                    break
                 self.sock.connect((self.host, self.port))
-                self.post_connect_setup()
+                if not self.post_connect_setup():
+                    print("Exiting at post_connect_setup()")
+                    break
 
                 # Inner loop will handle the open connection
                 while self.clientRunning:
@@ -75,7 +79,7 @@ class MarxClient:
         the socket connection is made.
         :return: True if successful, otherwise False.
         """
-        return False
+        return True
 
     def post_connect_setup(self):
         """
@@ -83,7 +87,7 @@ class MarxClient:
         the socket connection is made, but before the main loop starts.
         :return: True of successful, otherwise False.
         """
-        return False
+        return True
 
     # noinspection PyUnusedLocal
     def handle_message(self, message_type, message):
@@ -94,7 +98,7 @@ class MarxClient:
         :param message: The data that comes after the M_TYPE
         :return: True if successful, otherwise False
         """
-        return False
+        return True
 
     def teardown(self):
         pass
