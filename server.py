@@ -7,12 +7,10 @@ import base64
 import socket
 
 # TODO assign an id to the tasker client
-
 clients = list()
-
 clients_lock = threading.Lock()
-
 running = True
+
 
 class WorkerRequestHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
@@ -23,8 +21,6 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         global running, clients
-        self.clientRunning = True
-        self.sendQueue = []
         self.data = self._recv_timeout()
         with clients_lock:
             clients.append(self)
@@ -77,14 +73,23 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         self.data = self._recv_timeout()
+        result = self.data.split("__DATA__")
+        zip_file = result[0]
+        data_file = result[1]
+
+
         # We have collected the entire zip file, now we write it to the servers zip file
         # TODO Change file location and randomly generate file name
         with open("calculation.zip", "wb") as fh:
-            fh.write(base64.decodestring(self.data))
+            fh.write(base64.decodestring(zip_file))
 
-        server_A.send_to_all('calculation.zip')
+        with open("data_file.py", "wb") as fh:
+            fh.write(base64.decodestring(data_file))
 
-        self.request.send("Done! Here are your results!")
+        server_A.send_to_all(self.data)
+
+        # TODO loop until the results are all done from all the clients.
+        # self.request.send("Done! Here are your results!")
 
     # From http://code.activestate.com/recipes/408859/
     def _recv_timeout(self, timeout=2):
@@ -111,14 +116,10 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def send_to_all(self, message):
+    def send_to_all(self, file_data):
         print("Sending to all clients")
-        zip_file_name = message
-        with open(zip_file_name, 'rb') as f:
-            encoded = base64.b64encode(f.read())
         for client in clients:
-            client.sendQueue.append("__FILES__" + encoded)
-
+            client.sendQueue.append("__FILES__" + file_data)
     pass
 
 if __name__ == "__main__":

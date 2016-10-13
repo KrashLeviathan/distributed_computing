@@ -78,9 +78,13 @@ def main():
                 elif message_type == "__FILES__":
                     print("File Received")
                     received = received[9:] + _recv_timeout(sock)
+                    received = received.split("__DATA__")
+                    zip_file = received[0]
+                    data_file = received[1]
                     with open("client/calculation.zip", "wb") as fh:
-                        fh.write(base64.decodestring(received))
-
+                        fh.write(base64.decodestring(zip_file))
+                    with open("client/data_file.py", "wb") as fh:
+                        fh.write(base64.decodestring(data_file))
 
         except KeyboardInterrupt:
             print("\nShutting down worker client...")

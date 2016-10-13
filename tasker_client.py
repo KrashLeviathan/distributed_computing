@@ -19,6 +19,9 @@ try:
     zip_file_name, data_file_name = sys.argv[1:]
     with open(zip_file_name, 'rb') as f:
         encoded = base64.b64encode(f.read())
+    encoded += "__DATA__"
+    with open(data_file_name, 'rb') as f:
+        encoded += base64.b64encode(f.read())
 
     sock.sendall(encoded)
     # Receive data from the server and shut down                                         
