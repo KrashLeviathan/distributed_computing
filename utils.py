@@ -50,3 +50,11 @@ def write_data_to_file(file_path, data):
 def load_data_from_file(file_path):
     with open(file_path, 'rb') as f:
         return load(f)
+
+
+class TimeoutException(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)

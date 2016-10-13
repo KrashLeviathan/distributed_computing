@@ -34,7 +34,10 @@ class MarxClient:
                     self.sendQueue = []
 
                     # Receive data from the client
-                    self.data = self._recv_timeout()
+                    try:
+                        self.data = self._recv_timeout()
+                    except TimeoutException:
+                        continue
                     if self.data == M_TYPE_SHUTDOWN:
                         print("\nServer requested shutdown...")
                         self.clientRunning = False
@@ -49,8 +52,6 @@ class MarxClient:
                         if not successfully_handled:
                             print("DATA NOT HANDLED! Printing data received...\n{}".format(self.data))
 
-                    sleep(1)
-
                 self.teardown()
             except KeyboardInterrupt:
                 print("\nShutting down client...")
@@ -64,6 +65,9 @@ class MarxClient:
             finally:
                 self.sock.close()
                 print("Client Shutdown")
+
+    def send_message(self, m_type, message):
+        self.sendQueue.append("{}{}".format(m_type, message))
 
     def pre_connect_setup(self):
         """
@@ -114,7 +118,7 @@ class MarxClient:
                 break
             # if you got no data at all, wait a little longer
             elif time() - begin > timeout * 2:
-                break
+                raise TimeoutException("")
             # noinspection PyBroadException
             try:
                 data = self.sock.recv(8192).strip()

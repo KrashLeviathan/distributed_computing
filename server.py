@@ -42,7 +42,8 @@ class ClientRequestHandler(SocketServer.BaseRequestHandler):
         # Set client_id
         index_of_mem_address = str(self).find("0x")
         self.client_id = str(self)[index_of_mem_address:index_of_mem_address+14]
-        self.sendQueue.append("{}{}".format(M_TYPE_CLIENT_ID, self.client_id))
+        print("[*] Connected {} {}.".format(self.client_type, self.client_id))
+        self.send_message(M_TYPE_CLIENT_ID, self.client_id)
 
         while running:
             # Send all messages in the sendQueue, clearing the queue afterwards
@@ -54,7 +55,7 @@ class ClientRequestHandler(SocketServer.BaseRequestHandler):
             # Receive data from the client
             self.data = self._recv_timeout()
             if self.data == M_TYPE_CLOSING:
-                print("Closing {} {}".format(self.client_type, self.client_id))
+                print("[*] Disconnected {} {}.".format(self.client_type, self.client_id))
                 self.clientRunning = False
                 for client in clients:
                     if client is self:
@@ -70,6 +71,9 @@ class ClientRequestHandler(SocketServer.BaseRequestHandler):
         :return:
         """
         pass
+
+    def send_message(self, m_type, message):
+        self.sendQueue.append("{}{}".format(m_type, message))
 
     def _print_traffic(self, message, sent=False):
         formatted_message = message if len(message) < 40 else "{}...".format(message[:37])
@@ -155,7 +159,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def send_to_all(file_data):
         print("Sending to all clients")
         for client in clients:
-            client.sendQueue.append(M_TYPE_FILES + file_data)
+            client.send_message(M_TYPE_FILES, file_data)
 
 
 if __name__ == "__main__":
