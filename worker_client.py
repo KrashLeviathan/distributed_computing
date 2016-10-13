@@ -11,11 +11,11 @@ HOST, PORT = "localhost", 9999
 running = True
 zfile_path = "./calculation.zip"
 pklfile_path = "./calculation/main_file.pkl"
-id = 0
+client_id = 0
 
 
 def main():
-    global running
+    global running, client_id
 
     while running:
         try:
@@ -24,13 +24,14 @@ def main():
 
             # Connect to server and send data
             sock.connect((HOST, PORT))
-            sock.sendall("Ready to do work")
+            sock.sendall(M_TYPE_WORKER_AVAILABLE)
 
             # Receive data from the server and shut down
             received = sock.recv(1024)
-            print "Sent:     \"Ready to do work\""
+            print "Sent:     \"{}\"".format(M_TYPE_WORKER_AVAILABLE)
             print "Id: \"{}\"".format(received)
-            id = received
+            client_id = received
+
             # TODO Set vars to received information
             # Save file to zfile_path with data received from sock
 
@@ -61,24 +62,24 @@ def main():
             # This loop keeps the socket open as long as the server doesnt shut down
             # I HOPE
             while running:
-                time.sleep(1)
-
                 # FIXME
                 received = sock.recv(1024)
                 # print("Received: \"{}\"".format(received if len(received) != 0 else ""))
                 message_type = received[:9]
 
                 print(message_type)
-                if received == "":
-                    sock.close()
-                    break
-                elif message_type == M_TYPE_FILES:
+
+                # Handle message based on message type
+                if message_type == M_TYPE_FILES:
                     print("File Received")
-                    received = received[9:] + _recv_timeout(sock)
-                    received = received.split(MESSAGE_DELIMITER)
-                    zip_file = received[0]
-                    data_file = received[1]
-                    directory = "client_" + id
+                    if len(received) > 9:
+                        message = received[9:]
+                    else:
+                        print("The message was empty!")
+                        continue
+
+                    zip_file, data_file = received.split(MESSAGE_DELIMITER)
+                    directory = "client_" + client_id
                     os.makedirs("clients/" + directory)
 
                     with open("clients/"+ directory + "/calculation.zip", "wb") as fh:
@@ -88,26 +89,28 @@ def main():
                 elif message_type == M_TYPE_SHUTDOWN:
                     print("\nServer requested shutdown...")
                     running = False
-                    sock.close()
-                    print("WorkerClient Shutdown")
+                    break
+                elif message_type == "":
+                    print("\nConnection was lost. Shutting down...")
+                    running = False
                     break
                 else:
-                    print message_type
+                    print("Received unknown message type: {}".format(message_type))
+
+                time.sleep(1)
 
         except KeyboardInterrupt:
-            print("\nShutting down worker clients...")
+            print("\nShutting down worker client...")
             running = False
             time.sleep(1.5)
             sock.sendall(M_TYPE_CLOSING)
-            sock.close()
-            print("WorkerClient Shutdown")
         except socket.error, exc:
             print("Failure to connect: {}".format(exc))
-            time.sleep(1)
-        except:
-            sock.close()
+            running = False
+            time.sleep(1.5)
         finally:
             sock.close()
+            print("WorkerClient Shutdown")
 
 
 # From http://code.activestate.com/recipes/408859/

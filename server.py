@@ -7,6 +7,7 @@ import base64
 import socket
 import os
 from utils import *
+from shutil import rmtree
 
 # TODO assign an id to the tasker clients
 clients = list()
@@ -14,39 +15,68 @@ clients_lock = threading.Lock()
 running = True
 
 
-class WorkerRequestHandler(SocketServer.BaseRequestHandler):
-    def __init__(self, request, client_address, server):
+class ClientRequestHandler(SocketServer.BaseRequestHandler):
+    """
+    Generic client request handler. Gets extended by the WorkerRequestHandler
+    and TaskerRequestHandler classes. Any messages added to the sendQueue will
+    be sent to the client. Any messages received by the server from
+    this socket will be handled via the handle_by_type() method implemented
+    by the concrete classes.
+    """
+
+    def __init__(self, request, client_address, server, client_type):
         self.clientRunning = True
+        self.client_id = ""
         self.sendQueue = []
         self.data = None
-
+        self.client_type = client_type
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
 
     def handle(self):
+        global running, clients, clients_lock
 
-        global running, clients
-        self.data = self._recv_timeout()
-
+        # Add client thread
         with clients_lock:
             clients.append(self)
-        print "Worker {} wrote: \"{}\"".format(self, self.data)
-        string = "{}".format(self)
-        self.request.send(string[42:-1])
+
+        # Set client_id
+        index_of_mem_address = str(self).find("0x")
+        self.client_id = str(self)[index_of_mem_address:index_of_mem_address+14]
+        self.sendQueue.append("{}{}".format(M_TYPE_CLIENT_ID, self.client_id))
+
         while running:
+            # Send all messages in the sendQueue, clearing the queue afterwards
             for message in self.sendQueue:
-                print("Sent message from queue")
                 self.request.send(message)
+                self._print_traffic(message, sent=True)
             self.sendQueue = []
+
+            # Receive data from the client
             self.data = self._recv_timeout()
-            if len(self.data) != 0:
-                print("Worker {} wrote: \"{}\"".format(self, self.data))
             if self.data == M_TYPE_CLOSING:
-                print("closing worker")
+                print("Closing {} {}".format(self.client_type, self.client_id))
                 self.clientRunning = False
                 for client in clients:
                     if client is self:
                         clients.remove(client)
                 break
+            elif len(self.data) != 0:
+                self._print_traffic(self.data)
+                self.handle_by_type()
+
+    def handle_by_type(self):
+        """
+        The data handling to be implemented by the concrete classes (client types).
+        :return:
+        """
+        pass
+
+    def _print_traffic(self, message, sent=False):
+        formatted_message = message if len(message) < 40 else "{}...".format(message[:37])
+        if sent:
+            print("[*] Sent to       {} {}: \"{}\"".format(self.client_type, self.client_id, formatted_message))
+        else:
+            print("[*] Received from {} {}: \"{}\"".format(self.client_type, self.client_id, formatted_message))
 
     # From http://code.activestate.com/recipes/408859/
     def _recv_timeout(self, timeout=2):
@@ -72,63 +102,46 @@ class WorkerRequestHandler(SocketServer.BaseRequestHandler):
         return ''.join(total_data)
 
 
-class TaskerRequestHandler(SocketServer.BaseRequestHandler):
+class WorkerRequestHandler(ClientRequestHandler):
+    """
+    Handles requests for Worker clients.
+    """
+
     def __init__(self, request, client_address, server):
-        self.clientRunning = True
-        self.sendQueue = []
+        ClientRequestHandler.__init__(self, request, client_address, server, "WorkerClient")
 
-        self.data = None
-        SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
+    def handle_by_type(self):
+        # TODO: If the message is a set of results, pass it along to the tasker
+        pass
 
-    def handle(self):
-        with clients_lock:
-            clients.append(self)
 
-        self.data = self._recv_timeout()
-        result = self.data.split(MESSAGE_DELIMITER)
-        zip_file = result[0]
-        data_file = result[1]
-        id = "{}".format(self)
-        print self
-        directory = "tasker_" + id[43:-1]
+class TaskerRequestHandler(ClientRequestHandler):
+    """
+    Handles requests for Tasker clients.
+    """
+
+    def __init__(self, request, client_address, server):
+        ClientRequestHandler.__init__(self, request, client_address, server, "TaskerClient")
+
+    def handle_by_type(self):
+        zip_file, data_file = self.data.split(MESSAGE_DELIMITER)
+
+        directory = "taskers/tasker_" + self.client_id
         if not os.path.exists(directory):
-            os.makedirs("taskers/" + directory)
+            os.makedirs(directory)
 
         # We have collected the entire zip file, now we write it to the servers zip file
         # TODO Change file location and randomly generate file name
-        with open("taskers/" + directory + "/calculation.zip", "wb") as fh:
+        with open(directory + "/calculation.zip", "wb") as fh:
             fh.write(base64.decodestring(zip_file))
 
-        with open("taskers/" + directory + "/data_file.py", "wb") as fh:
+        with open(directory + "/data_file.py", "wb") as fh:
             fh.write(base64.decodestring(data_file))
 
         # server_A.send_to_all(self.data)
 
         # TODO loop until the results are all done from all the clients.
         # self.request.send("Done! Here are your results!")
-
-    # From http://code.activestate.com/recipes/408859/
-    def _recv_timeout(self, timeout=2):
-        self.request.setblocking(0)
-        total_data = []
-        begin = time.time()
-        while running:
-            # if you got some data, then break after wait sec
-            if total_data and time.time() - begin > timeout:
-                break
-            # if you got no data at all, wait a little longer
-            elif time.time() - begin > timeout * 2:
-                break
-            try:
-                data = self.request.recv(8192).strip()
-                if data:
-                    total_data.append(data)
-                    begin = time.time()
-                else:
-                    time.sleep(0.1)
-            except:
-                pass
-        return ''.join(total_data)
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -181,6 +194,9 @@ if __name__ == "__main__":
             server_B.kill_clients()
             server_A.shutdown()
             server_B.shutdown()
+            if os.path.exists("taskers"):
+                print("Removing \"taskers\" directory...")
+                rmtree("taskers")
             print "\n Server Shutdown"
 
     except socket.error, exc:

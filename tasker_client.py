@@ -8,9 +8,12 @@ from utils import *
 
 HOST, PORT = "localhost", 8888
 SLEEP_TIME = 2
+running = True
 
 
 def main():
+    global running
+
     if len(sys.argv[1:]) != 2:
         usage()
     zip_file_name, data_file_name = sys.argv[1:]
@@ -26,7 +29,7 @@ def main():
         print "Sent:     {}".format(zip_file_name + ", " + data_file_name)
 
         # Receive data from the server and shut down
-        while True:
+        while running:
             received = sock.recv(1024)
             if not received:
                 continue
@@ -40,14 +43,26 @@ def main():
                 pass
             elif message_type == M_TYPE_SHUTDOWN:
                 print("\nServer requested shutdown...")
+                running = False
                 break
             elif message_type == "":
                 print("\nConnection was lost. Shutting down...")
+                running = False
                 break
             else:
                 print("Received unknown message type: {}".format(message_type))
 
             sleep(SLEEP_TIME)
+
+    except KeyboardInterrupt:
+        print("\nShutting down tasker client...")
+        running = False
+        sleep(SLEEP_TIME)
+        sock.sendall(M_TYPE_CLOSING)
+    except socket.error as err:
+        print("Socket Error: {}".format(err))
+    except IOError as err:
+        print("IO Error: {}".format(err))
     finally:
         sock.close()
         print("Tasker Client Shutdown")

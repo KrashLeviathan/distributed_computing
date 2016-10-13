@@ -3,6 +3,7 @@
 from pickle import (dump, load)
 
 # Nine-character message types prepend encoded messages sent over the socket
+M_TYPE_CLIENT_ID = "__CLTID__"
 M_TYPE_RESULT = "__RESLT__"
 M_TYPE_SHUTDOWN = "__SHUTD__"
 M_TYPE_FILES = "__FILES__"
