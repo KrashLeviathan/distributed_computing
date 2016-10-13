@@ -45,7 +45,8 @@ class WorkerClient(marx_client.MarxClient):
         from clients.client_.calculation.main_file import calculate
         results = calculate(data_module.data)
         # Send to server
-        self.send_message(M_TYPE_RESULT, results)
+        encoded = base64.b64encode(results)
+        self.send_message(M_TYPE_RESULT, encoded)
 
         # Save log as log.txt
         # Check if log.txt exists and send to file

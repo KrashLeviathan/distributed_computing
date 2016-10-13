@@ -7,48 +7,13 @@ import pickle
 import re
 from utils import *
 
-DIRECTORY_PATH = "/client_files/"
-
-tasker_clients = []
-worker_clients = []
 
 
-def get_available_workers():
-    return [worker for worker in worker_clients if worker.status == M_TYPE_WORKER_AVAILABLE]
 
 
-def handle_client_data(tasker_client):
-    """
-    This method gets called after a TaskerClient has connected and sent data over
-    the network. The data should already be saved to the server and the
-    appropriate paths saved inside the TaskerClient at this point.
-    :param tasker_client: A TaskerClient
-    :return:
-    """
-    assignment_line, data_string_array = tasker_client.parse_data_file()
-    workers_for_task = get_available_workers()
-    for i in range(len(workers_for_task)):
-        chunk = Chunk(
-            len(data_string_array),
-            len(workers_for_task),
-            i
-        )
-        tasker_client.write_file_from_chunk(chunk, assignment_line, data_string_array)
-        workers_for_task[i].assign(tasker_client.client_id, chunk)
 
 
-def make_dirs(file_path):
-    """
-    Makes the needed directories for the file_path if they don't already exist.
-    :param file_path:
-    :return:
-    """
-    if not os.path.exists(os.path.dirname(file_path)):
-        try:
-            os.makedirs(os.path.dirname(file_path))
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                raise
+
 
 
 def write_data_to_file(file_path, the_data):
@@ -64,9 +29,10 @@ def write_data_to_file(file_path, the_data):
 
 class TaskerClient:
     """
-    Handles the sending/receiving of information to/from a Tasker Client (the clients
-    that requests execution of a piece of code).
-    """
+        Handles the sending/receiving of information to/from a Tasker Client (the clients
+        that requests execution of a piece of code).
+        """
+
     def __init__(self, _id, path_to_zipped_calc_dir, path_to_data_file):
         self.client_id = _id
         # Relative paths to zipped dir, data file, and data chunk files start with:
@@ -156,9 +122,10 @@ class TaskerClient:
 
 class WorkerClient:
     """
-    Handles the sending/receiving of information to/from a Worker Client (the clients
-    that executes the code).
-    """
+        Handles the sending/receiving of information to/from a Worker Client (the clients
+        that executes the code).
+        """
+
     def __init__(self, _id):
         self.client_id = _id
         self.status = M_TYPE_WORKER_AVAILABLE
@@ -200,20 +167,4 @@ class WorkerClient:
         self.chunk = None
 
 
-class Chunk:
-    """
-    Defines the range (chunk) of code that is to be executed by a WorkerClient
-    """
-    def __init__(self, total_count, divisions, div_index):
-        self.index = div_index
-        quotient = total_count / divisions
-        self.start = quotient * div_index
-        # Last chunk index gets the remainder of items
-        count = quotient if (div_index != divisions - 1) else quotient + (total_count % divisions)
-        self.stop = self.start + count
 
-    def get_range(self):
-        return range(self.start, self.stop)
-
-    def get_count(self):
-        return self.stop - self.start

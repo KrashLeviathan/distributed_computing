@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import errno
+import os
 from pickle import (dump, load)
 
 # Nine-character message types prepend encoded messages sent over the socket
@@ -58,3 +60,17 @@ class TimeoutException(Exception):
 
     def __str__(self):
         return repr(self.value)
+
+
+def make_dirs(file_path):
+    """
+    Makes the needed directories for the file_path if they don't already exist.
+    :param file_path:
+    :return:
+    """
+    if not os.path.exists(os.path.dirname(file_path)):
+        try:
+            os.makedirs(os.path.dirname(file_path))
+        except OSError as os_err:
+            if os_err.errno != errno.EEXIST:
+                raise

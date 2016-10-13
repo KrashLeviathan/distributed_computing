@@ -42,7 +42,7 @@ class MarxClient:
                         self.data = self._recv_timeout()
                     except TimeoutException:
                         continue
-                    if self.data == M_TYPE_SHUTDOWN:
+                    if self.data[:9] == M_TYPE_SHUTDOWN:
                         print("\nServer requested shutdown...")
                         self.clientRunning = False
                         break
