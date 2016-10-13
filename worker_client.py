@@ -12,9 +12,6 @@ running = True
 zfile_path = "./calculation.zip"
 pklfile_path = "./calculation/main_file.pkl"
 id = 0
-WORKER_UNAVAILABLE = 0
-WORKER_AVAILABLE = 1
-WORKER_BUSY = 2
 
 
 def main():

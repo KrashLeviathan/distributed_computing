@@ -7,6 +7,9 @@ M_TYPE_RESULT = "__RESLT__"
 M_TYPE_SHUTDOWN = "__SHUTD__"
 M_TYPE_FILES = "__FILES__"
 M_TYPE_CLOSING = "__CLOSE__"
+M_TYPE_WORKER_UNAVAILABLE = "__WKUNV__"
+M_TYPE_WORKER_AVAILABLE = "__WKAVL__"
+M_TYPE_WORKER_BUSY = "__WKBSY__"
 
 # After data has been encoded for transmission, it gets joined together with
 # this string being the delimiter.

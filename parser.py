@@ -5,10 +5,7 @@ import errno
 import os
 import pickle
 import re
-
-WORKER_UNAVAILABLE = 0
-WORKER_AVAILABLE = 1
-WORKER_BUSY = 2
+from utils import *
 
 DIRECTORY_PATH = "/client_files/"
 
@@ -17,7 +14,7 @@ worker_clients = []
 
 
 def get_available_workers():
-    return [worker for worker in worker_clients if worker.status == WORKER_AVAILABLE]
+    return [worker for worker in worker_clients if worker.status == M_TYPE_WORKER_AVAILABLE]
 
 
 def handle_client_data(tasker_client):
@@ -164,7 +161,7 @@ class WorkerClient:
     """
     def __init__(self, _id):
         self.client_id = _id
-        self.status = WORKER_AVAILABLE
+        self.status = M_TYPE_WORKER_AVAILABLE
         self.tasker = None
         self.chunk = None
 
@@ -175,7 +172,7 @@ class WorkerClient:
         :param chunk: The range of items from the data set that this worker should complete
         :return:
         """
-        self.status = WORKER_BUSY
+        self.status = M_TYPE_WORKER_BUSY
         self.tasker = tasker_clients[tasker_client_id]
         self.chunk = chunk
         with open(self.tasker.path_to_zipped_calc_dir) as zip_file:
@@ -198,7 +195,7 @@ class WorkerClient:
         :return:
         """
         self.tasker.complete_chunk(message)
-        self.status = WORKER_AVAILABLE
+        self.status = M_TYPE_WORKER_AVAILABLE
         self.tasker = None
         self.chunk = None
 
