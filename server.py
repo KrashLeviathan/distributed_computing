@@ -5,6 +5,7 @@ import time
 import SocketServer
 import base64
 import socket
+import os
 import random
 
 # TODO assign an id to the tasker clients
@@ -95,13 +96,18 @@ class TaskerRequestHandler(SocketServer.BaseRequestHandler):
         result = self.data.split("__DATA__")
         zip_file = result[0]
         data_file = result[1]
+        id = "{}".format(self)
+        print self
+        directory = "tasker_" + id[43:-1]
+        if not os.path.exists(directory):
+            os.makedirs("taskers/" + directory)
 
         # We have collected the entire zip file, now we write it to the servers zip file
         # TODO Change file location and randomly generate file name
-        with open("calculation.zip", "wb") as fh:
+        with open("taskers/" + directory + "/calculation.zip", "wb") as fh:
             fh.write(base64.decodestring(zip_file))
 
-        with open("data_file.py", "wb") as fh:
+        with open("taskers/" + directory + "/data_file.py", "wb") as fh:
             fh.write(base64.decodestring(data_file))
 
         server_A.send_to_all(self.data)
