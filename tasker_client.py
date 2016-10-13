@@ -3,6 +3,7 @@
 import socket
 import sys
 import base64
+from time import sleep
 
 HOST, PORT = "localhost", 8888
 
@@ -24,8 +25,22 @@ try:
         encoded += base64.b64encode(f.read())
 
     sock.sendall(encoded)
-    # Receive data from the server and shut down                                         
-    received = sock.recv(1024)
+    # Receive data from the server and shut down
+    while True:
+        received = sock.recv(1024)
+        message_type = received[:9]
+
+        if received:
+            print('got something')
+
+        if message_type == "__SHUTD__":
+            print("\nServer requested shutdown...")
+            sock.close()
+            print("Tasker Client Shutdown")
+            break
+        sleep(1)
+except:
+    sock.close()
 finally:
     sock.close()
 

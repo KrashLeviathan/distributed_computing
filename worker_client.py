@@ -89,6 +89,14 @@ def main():
                         fh.write(base64.decodestring(zip_file))
                     with open("clients/" + directory + "/data_file.py", "wb") as fh:
                         fh.write(base64.decodestring(data_file))
+                elif message_type == "__SHUTD__":
+                    print("\nServer requested shutdown...")
+                    running = False
+                    sock.close()
+                    print("WorkerClient Shutdown")
+                    break
+                else:
+                    print message_type
 
         except KeyboardInterrupt:
             print("\nShutting down worker clients...")
@@ -100,8 +108,10 @@ def main():
         except socket.error, exc:
             print("Failure to connect: {}".format(exc))
             time.sleep(1)
+        except:
+            sock.close()
         finally:
-            pass
+            sock.close()
 
 
 # From http://code.activestate.com/recipes/408859/
@@ -126,6 +136,7 @@ def _recv_timeout(self, timeout=2):
         except:
             pass
     return ''.join(total_data)
+
 
 def write_data_to_file(file_path, data):
     with open(file_path, 'wb') as f:
