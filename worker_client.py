@@ -3,6 +3,7 @@
 import pickle
 import socket
 import time
+import base64
 import utils
 import zipfile
 
@@ -66,14 +67,20 @@ def main():
                 time.sleep(1)
 
                 # FIXME
-                received = _recv_timeout(sock)
+                received = sock.recv(1024)
                 # print("Received: \"{}\"".format(received if len(received) != 0 else ""))
+                message_type = received[:9]
 
+                print(message_type)
                 if received == "":
                     sock.close()
                     break
-                elif "__FILES__" in received:
+                elif message_type == "__FILES__":
                     print("File Received")
+                    received = received[9:] + _recv_timeout(sock)
+                    with open("client/calculation.zip", "wb") as fh:
+                        fh.write(base64.decodestring(received))
+
 
         except KeyboardInterrupt:
             print("\nShutting down worker client...")
@@ -89,7 +96,6 @@ def main():
             pass
 
 
-# FIXME
 # From http://code.activestate.com/recipes/408859/
 def _recv_timeout(self, timeout=2):
     self.setblocking(0)
@@ -103,7 +109,7 @@ def _recv_timeout(self, timeout=2):
         elif time.time() - begin > timeout * 2:
             break
         try:
-            data = self.request.recv(8192).strip()
+            data = self.recv(8192).strip()
             if data:
                 total_data.append(data)
                 begin = time.time()
